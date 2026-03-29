@@ -2,10 +2,19 @@
 
 ## 1. System Design
 
+User should be able to add pets to profile, User should be able to view tasks to be completed (i.e. going for walk or feeding pet) and mark off completed tasks, and User should be able to find/generate a recommened daily plan based on some information or requirements collected from the user.
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
+
+There are 5 main classes to consider: Owner, Pet, CareTask, Scheduler, and DailyPlan.
+Owner class includes id, name, daily_time_available, prefernces, and max_tasks_per_day
+Pet class includes pet_id, name, species, age, energy_level, and medical_notes
+CareTask class includes task_id, pet_id, title, category, duration_minutes, priority, due_time, and is_completed
+Scheduler class includes constraints, scoring_weights, and strategy
+DailyPlan class includes date, scheduled_items, total_minutes_used, and unscheduled_tasks
 
 **b. Design changes**
 
