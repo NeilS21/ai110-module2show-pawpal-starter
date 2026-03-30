@@ -1,0 +1,79 @@
+classDiagram
+    class Owner {
+        +String owner_id
+        +String name
+        +int daily_time_available
+        +String preferences
+        +int max_tasks_per_day
+        --
+        +update_preferences(String)
+        +set_available_time(int)
+        +mark_task_complete(String)
+    }
+
+    class Pet {
+        +String pet_id
+        +String name
+        +String species
+        +int age
+        +String energy_level
+        +String medical_notes
+        --
+        +update_profile()
+        +get_care_needs() List~String~
+    }
+
+    class CareTask {
+        +String task_id
+        +String pet_id
+        +String title
+        +String category
+        +int duration_minutes
+        +int priority
+        +time due_time
+        +bool is_completed
+        +String recurrence_pattern
+        +date original_due_date
+        +date last_completed_date
+        --
+        +mark_complete(date) CareTask
+        -_generate_next_occurrence(date) CareTask
+        +update_task()
+        +get_urgency_score(time) float
+    }
+
+    class Scheduler {
+        -dict constraints
+        -dict scoring_weights
+        -String strategy
+        --
+        +sort_by_time(List~CareTask~) List~CareTask~
+        +filter_by_completion(List~CareTask~, bool) List~CareTask~
+        +filter_by_pet(List~CareTask~, String) List~CareTask~
+        +complete_task(CareTask, date) List~CareTask~
+        +get_recurring_tasks(List~CareTask~) List~CareTask~
+        +expand_recurring_tasks(List~CareTask~, int) List~CareTask~
+        +detect_conflicts(List~CareTask~) List~Tuple~
+        +build_plan(Owner, Pet, List~CareTask~, time) DailyPlan
+        +score_task(CareTask, time, int) float
+        +resolve_conflicts()
+    }
+
+    class DailyPlan {
+        +date date
+        +int total_minutes_used
+        +dict scheduled_items
+        +List~CareTask~ unscheduled_tasks
+        --
+        +add_item(CareTask, time)
+        +remove_item(String)
+        +explain_plan() String
+    }
+
+    Owner "1" --> "0..*" Pet : owns
+    Pet "1" --> "0..*" CareTask : has tasks
+    Scheduler "1" --> "1..*" CareTask : analyzes & sorts
+    Scheduler "1" --> "1" Owner : uses preferences
+    Scheduler "1" --> "1..*" Pet : uses care needs
+    Scheduler "1" --> "1" DailyPlan : generates
+    DailyPlan "1" o-- "0..*" CareTask : schedules
