@@ -42,39 +42,39 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
-## Smarter Scheduling Features
+## Features
 
-This implementation includes advanced algorithmic features to improve pet care scheduling:
+**Sorting & Ordering**
+- `sort_by_time()` – Orders tasks chronologically by due time
+- Tasks without due times placed at end
 
-### Chronological Sorting
-- **`sort_by_time()`** – Sorts tasks by due time in chronological order (O(n log n))
-- Tasks without due times are placed at the end for filtering flexibility
-- Uses lambda function to convert time to minutes for comparison
+**Filtering & Discovery**
+- `filter_by_pet()` – Show only tasks for a specific pet
+- `filter_by_completion()` – View pending or completed tasks
+- `get_recurring_tasks()` – Find repeating task patterns
 
-### Intelligent Filtering
-- **`filter_by_pet()`** – Return all tasks for a specific pet
-- **`filter_by_completion()`** – Separate pending and completed tasks
-- Enables focused views of the schedule
+**Recurring Task Automation**
+- `mark_complete()` – Marks task done and auto-generates next occurrence
+- Supports daily, weekly, monthly, and one-time patterns
+- Uses `timedelta` for accurate date calculations
+- Example: Mark "Morning Walk" complete → automatically creates tomorrow's task
 
-### Recurring Task Automation
-- **`mark_complete()` & `_generate_next_occurrence()`** – Automatically generate next occurrences for recurring tasks
-- Supports daily, weekly, and monthly patterns using `timedelta` calculations
-- Each completion generates the next task instance with proper date math
-- Useful for regular care activities (daily feeding, weekly grooming, etc.)
+**Schedule Expansion**
+- `expand_recurring_tasks()` – Creates 30-day task instances
+- Daily task: 30 instances over 30 days
+- Weekly task: ~5 instances (every 7 days)
+- Monthly task: 1-2 instances (every 30 days)
 
-### 30-Day Schedule Expansion
-- **`expand_recurring_tasks()`** – Expands recurring tasks across 30+ days
-- Generates task instances for multi-week scheduling
-- Calculates pattern-based dates (daily=every 1 day, weekly=every 7 days, monthly=every 30 days)
+**Conflict Detection**
+- `detect_conflicts()` – Flags when multiple tasks are scheduled at the same time
+- Detects conflicts between different pets or same pet
+- Returns warning messages with affected tasks
+- Prevents scheduling mistakes
 
-### Conflict Detection
-- **`detect_conflicts()`** – Identifies when multiple tasks are scheduled at the same time
-- Lightweight O(n²) algorithm comparing exact time matches
-- Returns detailed warning messages showing which tasks and pets are in conflict
-- Prevents scheduling oversights and helps optimize the daily plan
-
-### Design Principle
-All algorithms prioritize **readability and maintainability** over micro-optimizations, making them ideal for learning and future expansion.
+**Urgency Scoring**
+- `get_urgency_score()` – Calculates task priority based on deadline and importance
+- Higher score = more urgent
+- Overdue tasks get maximum urgency
 
 ---
 
