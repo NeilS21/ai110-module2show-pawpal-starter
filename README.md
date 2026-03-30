@@ -83,22 +83,18 @@ All algorithms prioritize **readability and maintainability** over micro-optimiz
 ### Running the Test Suite
 
 ```bash
+# Run all tests
+python -m pytest  
+python -m pytest tests/test_pawpal.py
+
 # Run all tests with verbose output
 python -m pytest tests/test_pawpal.py -v
 
-# Run a specific test class
-python -m pytest tests/test_pawpal.py::TestSortingCorrectness -v
-
-# Run a single test
-python -m pytest tests/test_pawpal.py::TestRecurrenceLogic::test_daily_task_completion_generates_next_day -v
-
-# Show test output with print statements
-python -m pytest tests/test_pawpal.py -v -s
 ```
 
 ### Test Coverage
 
-The test suite includes **32 comprehensive tests** organized into 7 categories:
+The test suite includes 32  tests organized into 7 general categories:
 
 #### 1. **Sorting Correctness** (4 tests)
 - Chronological ordering of tasks by due time
@@ -146,13 +142,11 @@ The test suite includes **32 comprehensive tests** organized into 7 categories:
 
 ### Test Results
 
-✅ **32 / 32 tests PASSED** (0 failures)
+✅ 32 / 32 tests PASSED (0 failures)
 
-**Execution time:** ~0.13 seconds
+### Confidence Level: (5/5 stars)
 
-### Confidence Level: ⭐⭐⭐⭐⭐ (5/5 stars)
-
-**Why 5 stars?**
+**Why 5**
 
 - ✅ **Critical features fully tested**: Sorting, recurrence, and conflict detection verified across happy paths and edge cases
 - ✅ **Happy path coverage**: All standard use cases (daily/weekly/monthly recurrence, task sorting, filtering) pass
@@ -161,11 +155,3 @@ The test suite includes **32 comprehensive tests** organized into 7 categories:
 - ✅ **Conflict detection reliable**: Multiple pets, same-time detection, and false-positive prevention verified
 - ✅ **Expansion algorithm accurate**: 30-day expansion generates correct counts (30 daily, 5 weekly, 1-2 monthly)
 - ✅ **No regressions**: Existing functionality (task completion, plan addition) still works
-
-**Minor notes for future enhancement:**
-- Owner constraint validation (time available < total task duration) not tested
-- Month-end date handling (Feb 28/29) not explicitly tested
-- Very large task lists (1000+ tasks) performance not tested
-- Invalid recurrence pattern error handling not tested
-
-The system is **production-ready** for the core scheduling workflow with strong reliability across sorting, recurrence, and conflict detection—the most critical features for a pet care scheduler.

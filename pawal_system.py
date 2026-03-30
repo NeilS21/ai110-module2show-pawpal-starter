@@ -312,12 +312,20 @@ class Scheduler:
                     )
                     expanded_tasks.append(task_instance)
         
+        return expanded_tasks
     
     def detect_conflicts(self, tasks: List[CareTask]) -> List[Tuple[CareTask, CareTask, str]]:
-        """Detect same-time scheduling conflicts via nested loop comparison (O(n²)).
+        """Detect and report task conflicts (same time scheduling).
         
-        Filters tasks with due_time and compares all pairs. Returns list of
-        tuples (task1, task2, warning_message) for tasks scheduled at same time.
+        Lightweight conflict detection: compares tasks by due_time and returns
+        a list of conflicts with warning messages instead of crashing.
+        
+        Args:
+            tasks: List of tasks to check for conflicts
+            
+        Returns:
+            List of tuples: (task1, task2, warning_message)
+            Empty list if no conflicts found
         """
         conflicts = []
         tasks_with_time = [t for t in tasks if t.due_time is not None]
