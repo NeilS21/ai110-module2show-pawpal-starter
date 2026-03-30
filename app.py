@@ -1,10 +1,11 @@
 import streamlit as st
 from pawal_system import Owner, Pet, CareTask, Scheduler, DailyPlan
-from datetime import time
+from datetime import time, date, timedelta
+import pandas as pd
 
-st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
+st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="wide")
 
-st.title("🐾 PawPal+")
+st.title("🐾 PawPal+ Smart Pet Care Scheduler")
 
 # Initialize session state if not already done
 if 'owner' not in st.session_state:
@@ -165,41 +166,257 @@ else:
 
 st.divider()
 
-st.subheader("Build Schedule")
-st.caption("This creates a DailyPlan and adds tasks to it using DailyPlan.add_item().")
+st.subheader("View & Analyze Tasks")
 
-if st.button("Generate schedule"):
-    if st.session_state.owner and st.session_state.tasks:
-        from datetime import date
+if st.session_state.tasks:
+    # Create a Scheduler instance for smart analysis
+    scheduler = Scheduler(constraints={}, scoring_weights={}, strategy="priority")
+    
+    # Tabs for different views
+    tab1, tab2, tab3, tab4 = st.tabs(["📅 All Tasks", "⚠️ Conflict Check", "🔄 30-Day Expansion", "📊 Analytics"])
+    
+    with tab1:
+        st.markdown("### Tasks Sorted by Time (Earliest First)")
         
-        # Create a DailyPlan for today using DailyPlan.__init__()
+        # Sort tasks chronologically using Scheduler.sort_by_time()
+        sorted_tasks = scheduler.sort_by_time(st.session_state.tasks)
+        
+        if sorted_tasks:
+            # Create a table for professional display
+            task_data = []
+            for task in sorted_tasks:
+                pet = next((p for p in st.session_state.pets if p.pet_id == task.pet_id), None)
+                due_time_str = task.due_time.strftime('%I:%M %p') if task.due_time else "No time set"
+                
+                # Calculate urgency score if task has a due time
+                urgency = None
+                if task.due_time:
+                    urgency = task.get_urgency_score(time(12, 0))  # Score relative to noon
+                
+                task_data.append({
+                    "Task": task.title,
+                    "Pet": pet.name if pet else "Unknown",
+                    "Duration (min)": task.duration_minutes,
+                    "Priority": f"{'⭐' * task.priority}",
+                    "Due Time": due_time_str,
+                    "Status": "✓ Done" if task.is_completed else "○ Pending",
+                    "Urgency Score": f"{urgency:.1f}" if urgency else "—"
+                })
+            
+            df = pd.DataFrame(task_data)
+            st.dataframe(df, use_container_width=True)
+            st.success(f"✓ {len(sorted_tasks)} task(s) sorted by time")
+        
+        # Filter by pet
+        st.markdown("#### Filter by Pet")
+        pet_options = {p.name: p.pet_id for p in st.session_state.pets}
+        selected_pet_name = st.selectbox("Show tasks for:", ["All Pets"] + list(pet_options.keys()))
+        
+        if selected_pet_name != "All Pets":
+            pet_id = pet_options[selected_pet_name]
+            filtered_tasks = scheduler.filter_by_pet(st.session_state.tasks, pet_id)
+            st.write(f"**{len(filtered_tasks)} task(s) for {selected_pet_name}:**")
+            for task in filtered_tasks:
+                status = "✓ Done" if task.is_completed else "○ Pending"
+                st.write(f"  • [{status}] {task.title} ({task.duration_minutes}min, priority {task.priority})")
+    
+    with tab2:
+        st.markdown("### 🔍 Conflict Detection")
+        st.caption("Detects when multiple tasks are scheduled for the same time (blocking the owner from doing both).")
+        
+        # Detect conflicts using Scheduler.detect_conflicts()
+        conflicts = scheduler.detect_conflicts(st.session_state.tasks)
+        
+        if conflicts:
+            st.warning("⚠️ **Scheduling Conflicts Detected!**")
+            st.markdown(f"**{len(conflicts)} conflict(s) found:**\n")
+            
+            for i, (task1, task2, warning_msg) in enumerate(conflicts, 1):
+                with st.container():
+                    col1, col2, col3 = st.columns([1, 4, 2])
+                    with col1:
+                        st.error(f"⚠️ #{i}")
+                    with col2:
+                        st.write(warning_msg)
+                    with col3:
+                        if st.button("📋 View conflicting tasks", key=f"conflict_{i}"):
+                            st.info(f"**{task1.title}** for {task1.pet_id}\n—\n**{task2.title}** for {task2.pet_id}")
+            
+            st.markdown("**✅ Recommendations:**")
+            st.markdown("- Adjust task times to avoid overlaps")
+            st.markdown("- Consider batching quick tasks (feeding, water)")
+            st.markdown("- Delegate one task to another caregiver if available")
+        else:
+            st.success("✓ No scheduling conflicts detected! Tasks are spread out appropriately.")
+    
+    with tab3:
+        st.markdown("### 📅 30-Day Schedule Expansion")
+        st.caption("Shows how recurring tasks expand across a month.")
+        
+        # Get recurring tasks
+        recurring_tasks = scheduler.get_recurring_tasks(st.session_state.tasks)
+        
+        if recurring_tasks:
+            st.write(f"**Recurring Tasks ({len(recurring_tasks)}):**")
+            
+            # Show current recurring tasks
+            for task in recurring_tasks:
+                pet = next((p for p in st.session_state.pets if p.pet_id == task.pet_id), None)
+                st.write(f"  • {task.title} ({task.recurrence_pattern.upper()}) - {pet.name if pet else 'Unknown'}")
+            
+            # Expand and show statistics
+            expanded = scheduler.expand_recurring_tasks(recurring_tasks, days=30)
+            
+            if expanded:
+                st.success(f"✓ Expanded to {len(expanded)} task instances over 30 days")
+                
+                # Group by recurrence type for summary
+                daily_count = len([t for t in expanded if t.recurrence_pattern == "daily"])
+                weekly_count = len([t for t in expanded if t.recurrence_pattern == "weekly"])
+                monthly_count = len([t for t in expanded if t.recurrence_pattern == "monthly"])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Daily Instances", daily_count)
+                with col2:
+                    st.metric("Weekly Instances", weekly_count)
+                with col3:
+                    st.metric("Monthly Instances", monthly_count)
+                
+                # Show expanded schedule timeline
+                st.markdown("#### Sample Expansion (First 15 days)")
+                expansion_data = []
+                for task in expanded[:15]:
+                    pet = next((p for p in st.session_state.pets if p.pet_id == task.pet_id), None)
+                    expansion_data.append({
+                        "Date": task.original_due_date.strftime('%a, %b %d'),
+                        "Task": task.title,
+                        "Pet": pet.name if pet else "Unknown",
+                        "Recurrence": task.recurrence_pattern.upper(),
+                        "Time": task.due_time.strftime('%I:%M %p') if task.due_time else "—"
+                    })
+                
+                df_expanded = pd.DataFrame(expansion_data)
+                st.dataframe(df_expanded, use_container_width=True)
+        else:
+            st.info("No recurring tasks yet. Add tasks with recurrence patterns (daily, weekly, monthly) to see expansion.")
+    
+    with tab4:
+        st.markdown("### 📊 Task Analytics")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_tasks = len(st.session_state.tasks)
+            st.metric("Total Tasks", total_tasks)
+        
+        with col2:
+            completed = len(scheduler.filter_by_completion(st.session_state.tasks, completed=True))
+            st.metric("Completed", completed)
+        
+        with col3:
+            pending = len(scheduler.filter_by_completion(st.session_state.tasks, completed=False))
+            st.metric("Pending", pending)
+        
+        with col4:
+            recurring = len(scheduler.get_recurring_tasks(st.session_state.tasks))
+            st.metric("Recurring", recurring)
+        
+        # Time summary
+        st.markdown("#### Time Summary")
+        total_duration = sum(t.duration_minutes for t in st.session_state.tasks if not t.is_completed)
+        owner_available = st.session_state.owner.daily_time_available if st.session_state.owner else 0
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Total Time Needed (pending)", f"{total_duration} min")
+        with col2:
+            st.metric("Owner Available", f"{owner_available} min")
+        
+        if owner_available > 0 and total_duration > 0:
+            utilization = (total_duration / owner_available) * 100
+            st.progress(min(utilization / 100, 1.0))
+            st.caption(f"{utilization:.1f}% of available time used")
+            
+            if utilization > 100:
+                st.warning(f"⚠️ Pending tasks ({total_duration} min) exceed available time ({owner_available} min)!")
+            elif utilization > 80:
+                st.info(f"⚡ Schedule is quite full ({utilization:.0f}% utilized)")
+            else:
+                st.success(f"✓ Comfortable schedule with {owner_available - total_duration} min buffer")
+
+else:
+    st.info("📝 Add tasks in the section above to view and analyze them here.")
+
+st.divider()
+
+st.subheader("Build Daily Schedule")
+st.caption("Creates an optimized daily plan using sorted and conflict-checked tasks.")
+
+if st.button("Generate Optimized Schedule"):
+    if st.session_state.owner and st.session_state.tasks:
+        scheduler = Scheduler(constraints={}, scoring_weights={}, strategy="priority")
+        
+        # Create a DailyPlan for today
         plan = DailyPlan(date=date.today())
         
-        # Add tasks to the plan using DailyPlan.add_item()
-        start_hour = 7  # Start scheduling at 7 AM
-        for i, task in enumerate(st.session_state.tasks):
-            task_start_time = time(start_hour + i, 0)  # Each task starts 1 hour apart
-            plan.add_item(task, task_start_time)  # Call the class method to add item
-            start_hour += (task.duration_minutes // 60) + 1
+        # Sort tasks by time first
+        sorted_tasks = scheduler.sort_by_time(st.session_state.tasks)
         
-        # Display the generated plan
+        # Get conflicts
+        conflicts = scheduler.detect_conflicts(sorted_tasks)
+        
+        # Check for time issues
         st.success("✓ Schedule generated!")
-        st.write(f"**Daily Plan for {plan.date}**")
-        st.info(f"Owner: {st.session_state.owner.name} | Total time available: {st.session_state.owner.daily_time_available} min")
         
-        for task_id, start_time in sorted(plan.scheduled_items.items(), key=lambda x: x[1]):
-            task = next((t for t in st.session_state.tasks if t.task_id == task_id), None)
-            if task:
-                end_minutes = start_time.hour * 60 + start_time.minute + task.duration_minutes
-                end_hour = end_minutes // 60
-                end_min = end_minutes % 60
-                end_time = time(end_hour, end_min)
-                st.text(f"  {start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')} | {task.title}")
+        col1, col2 = st.columns([2, 1])
         
-        # Show plan explanation if implemented
-        explanation = plan.explain_plan()
-        if explanation:
-            st.markdown("**Plan Explanation:**")
-            st.write(explanation)
+        with col1:
+            st.write(f"**Daily Plan for {plan.date.strftime('%A, %B %d, %Y')}**")
+            st.info(f"👤 {st.session_state.owner.name} | ⏱️ Available: {st.session_state.owner.daily_time_available} min/day")
+        
+        with col2:
+            if conflicts:
+                st.warning(f"⚠️ {len(conflicts)} Conflict(s)")
+            else:
+                st.success("✓ No Conflicts")
+        
+        # Display sorted schedule as timeline
+        st.markdown("#### 📅 Timeline View")
+        
+        schedule_data = []
+        start_hour = 7
+        for task in sorted_tasks:
+            pet = next((p for p in st.session_state.pets if p.pet_id == task.pet_id), None)
+            task_start_time = time(start_hour, 0)
+            task_end_minutes = start_hour * 60 + task.duration_minutes
+            task_end_hour = task_end_minutes // 60
+            task_end_min = task_end_minutes % 60
+            task_end_time = time(task_end_hour % 24, task_end_min)  # Handle overflow
+            
+            plan.add_item(task, task_start_time)
+            
+            schedule_data.append({
+                "Time": f"{task_start_time.strftime('%I:%M %p')} - {task_end_time.strftime('%I:%M %p')}",
+                "Task": task.title,
+                "Pet": pet.name if pet else "Unknown",
+                "Duration": f"{task.duration_minutes} min",
+                "Priority": f"{'⭐' * task.priority}",
+                "Status": "✓ Done" if task.is_completed else "○ Pending"
+            })
+            
+            start_hour = task_end_hour + 1
+        
+        df_schedule = pd.DataFrame(schedule_data)
+        st.dataframe(df_schedule, use_container_width=True)
+        
+        # Show conflict warnings if any
+        if conflicts:
+            st.markdown("#### ⚠️ Scheduling Conflicts")
+            with st.expander("View conflict details", expanded=True):
+                for task1, task2, warning_msg in conflicts:
+                    st.warning(warning_msg)
+        
+        st.success("✓ Schedule is ready for the day!")
     else:
         st.error("Please create an Owner and at least one Task first.")
