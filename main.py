@@ -1,11 +1,17 @@
 """
-Main script: Demo of PawPal+ system with sample Owner, Pets, and Tasks.
+Main script: Demo of PawPal+ system with recurring task automation.
+Demonstrates sorting, filtering, and automatic recurring task generation using timedelta.
 """
-from datetime import date, time
-from pawal_system import Owner, Pet, CareTask, DailyPlan
+from datetime import date, time, timedelta
+from pawal_system import Owner, Pet, CareTask, DailyPlan, Scheduler
 
 
 def main():
+    """Demonstrate PawPal+ system features across 8 demos.
+    
+    Showcases: task creation, recurring automation, sorting, filtering,
+    30-day expansion planning, and conflict detection algorithm.
+    """
     # Create an Owner
     owner = Owner(
         owner_id="O001",
@@ -41,8 +47,11 @@ def main():
     print(f"  1. {dog.name} ({dog.species}, age {dog.age}) - Energy: {dog.energy_level}")
     print(f"  2. {cat.name} ({cat.species}, age {cat.age}) - Energy: {cat.energy_level}\n")
 
-    # Create Tasks
-    task1 = CareTask(
+    # Create Recurring Tasks
+    print("Creating recurring and one-time tasks:\n")
+    
+    # DAILY TASKS
+    morning_walk = CareTask(
         task_id="T001",
         pet_id="P001",
         title="Morning Walk",
@@ -50,98 +59,269 @@ def main():
         duration_minutes=30,
         priority=3,
         due_time=time(7, 0),
-        is_completed=False
+        is_completed=False,
+        recurrence_pattern="daily",
+        original_due_date=date.today()
     )
     
-    task2 = CareTask(
+    feeding_dog = CareTask(
         task_id="T002",
         pet_id="P001",
-        title="Feeding",
+        title="Dog Feeding",
         category="feeding",
         duration_minutes=10,
         priority=1,
         due_time=time(8, 0),
-        is_completed=False
+        is_completed=False,
+        recurrence_pattern="daily",
+        original_due_date=date.today()
     )
     
-    task3 = CareTask(
+    feeding_cat = CareTask(
         task_id="T003",
         pet_id="P002",
-        title="Litter Box Cleaning",
-        category="hygiene",
-        duration_minutes=15,
-        priority=2,
-        due_time=time(9, 0),
-        is_completed=False
-    )
-    
-    task4 = CareTask(
-        task_id="T004",
-        pet_id="P002",
-        title="Feeding",
+        title="Cat Feeding",
         category="feeding",
         duration_minutes=10,
         priority=1,
         due_time=time(18, 0),
-        is_completed=False
+        is_completed=False,
+        recurrence_pattern="daily",
+        original_due_date=date.today()
     )
     
-    task5 = CareTask(
-        task_id="T005",
+    # WEEKLY TASKS
+    bath = CareTask(
+        task_id="T004",
         pet_id="P001",
-        title="Evening Walk",
-        category="exercise",
-        duration_minutes=30,
-        priority=3,
-        due_time=time(18, 30),
-        is_completed=False
+        title="Bath Time",
+        category="hygiene",
+        duration_minutes=45,
+        priority=2,
+        due_time=time(14, 0),
+        is_completed=False,
+        recurrence_pattern="weekly",
+        original_due_date=date.today()
+    )
+    
+    nail_trim = CareTask(
+        task_id="T005",
+        pet_id="P002",
+        title="Nail Trimming",
+        category="hygiene",
+        duration_minutes=20,
+        priority=2,
+        due_time=time(15, 0),
+        is_completed=False,
+        recurrence_pattern="weekly",
+        original_due_date=date.today()
+    )
+    
+    # ONE-TIME TASKS
+    vet_visit = CareTask(
+        task_id="T006",
+        pet_id="P001",
+        title="Vet Visit",
+        category="medical",
+        duration_minutes=60,
+        priority=5,
+        due_time=time(10, 0),
+        is_completed=False,
+        recurrence_pattern="once",
+        original_due_date=date.today()
     )
 
-    tasks = [task1, task2, task3, task4, task5]
-    print(f"Tasks Created ({len(tasks)} total):")
+    tasks = [morning_walk, feeding_dog, feeding_cat, bath, nail_trim, vet_visit]
+    
+    print(f"[OK] Created {len(tasks)} tasks\n")
     for task in tasks:
-        print(f"  - [{task.task_id}] {task.title} ({task.category})")
-        print(f"    Pet: {task.pet_id}, Duration: {task.duration_minutes}min, Priority: {task.priority}, Due: {task.due_time}\n")
+        recurrence = f"[{task.recurrence_pattern.upper()}]" if task.recurrence_pattern != "once" else "[ONE-TIME]"
+        print(f"  {recurrence:12} {task.title:<25} | {task.pet_id} | {task.due_time}")
 
-    # Build a sample daily plan
-    plan = DailyPlan(
-        date=date.today(),
-        total_minutes_used=0,
-        scheduled_items={},
-        unscheduled_tasks=[]
-    )
+    # Create Scheduler
+    scheduler = Scheduler(constraints={}, scoring_weights={}, strategy="priority")
 
-    # Manually schedule tasks
-    plan.add_item(task1, time(7, 0))    # Morning walk at 7:00 AM
-    plan.add_item(task2, time(8, 0))    # Dog feeding at 8:00 AM
-    plan.add_item(task3, time(9, 0))    # Litter box at 9:00 AM
-    plan.add_item(task4, time(18, 0))   # Cat feeding at 6:00 PM
-    plan.add_item(task5, time(18, 30))  # Evening walk at 6:30 PM
+    print("\n" + "="*80)
+    print("DEMONSTRATION: RECURRING TASK AUTOMATION")
+    print("="*80)
 
-    plan.total_minutes_used = sum(t.duration_minutes for t in tasks)
-
-    # Display the daily schedule
-    print("\n" + "="*60)
-    print(f"TODAY'S SCHEDULE - {plan.date}")
-    print("="*60)
-    print(f"\nScheduled Tasks ({len(plan.scheduled_items)} items):\n")
+    # DEMO 1: Complete a daily task and show next occurrence
+    print("\n📋 DEMO 1: Complete a Daily Task → Auto-generate Next Occurrence")
+    print("-" * 80)
     
-    for task_id, start_time in sorted(plan.scheduled_items.items(), key=lambda x: x[1]):
-        # Find the task object
-        task = next(t for t in tasks if t.task_id == task_id)
-        end_minutes = start_time.hour * 60 + start_time.minute + task.duration_minutes
-        end_hour = end_minutes // 60
-        end_min = end_minutes % 60
-        end_time = time(end_hour, end_min)
+    print(f"\nOriginal task: {morning_walk.title}")
+    print(f"  Task ID: {morning_walk.task_id}")
+    print(f"  Recurrence: {morning_walk.recurrence_pattern}")
+    print(f"  Due time: {morning_walk.due_time}")
+    print(f"  Status: {'✓ COMPLETED' if morning_walk.is_completed else '⏳ PENDING'}\n")
+    
+    # Mark task as complete TODAY
+    print(f"Marking '{morning_walk.title}' as complete on {date.today()}...\n")
+    next_task = morning_walk.mark_complete(date.today())
+    
+    print(f"Updated task: {morning_walk.title}")
+    print(f"  Status: {'✓ COMPLETED' if morning_walk.is_completed else '⏳ PENDING'}")
+    print(f"  Last completed: {morning_walk.last_completed_date}\n")
+    
+    if next_task:
+        next_due = date.today() + timedelta(days=1)
+        print(f"✨ NEW TASK GENERATED for next occurrence:")
+        print(f"  Task ID: {next_task.task_id}")
+        print(f"  Title: {next_task.title}")
+        print(f"  Due date: {next_due}")
+        print(f"  Due time: {next_task.due_time}")
+        print(f"  Status: {'✓ COMPLETED' if next_task.is_completed else '⏳ PENDING'}")
+
+    # DEMO 2: Complete a weekly task
+    print("\n\n📋 DEMO 2: Complete a Weekly Task → Auto-generate Next Week's Task")
+    print("-" * 80)
+    
+    print(f"\nOriginal task: {bath.title}")
+    print(f"  Recurrence: {bath.recurrence_pattern}")
+    print(f"  Due: {bath.due_time} on {date.today()}\n")
+    
+    print(f"Marking '{bath.title}' as complete on {date.today()}...\n")
+    next_bath = bath.mark_complete(date.today())
+    
+    if next_bath:
+        next_due = date.today() + timedelta(days=7)
+        print(f"✨ NEW TASK GENERATED for next week:")
+        print(f"  Due date: {next_due} (1 week later, using timedelta(days=7))")
+        print(f"  Due time: {next_bath.due_time}")
+
+    # DEMO 3: One-time task doesn't generate next occurrence
+    print("\n\n📋 DEMO 3: One-Time Task → No auto-generation")
+    print("-" * 80)
+    
+    print(f"\nOriginal task: {vet_visit.title}")
+    print(f"  Recurrence: {vet_visit.recurrence_pattern}")
+    
+    print(f"Marking '{vet_visit.title}' as complete...\n")
+    next_vet = vet_visit.mark_complete(date.today())
+    
+    print(f"✓ Task marked complete: {vet_visit.title}")
+    print(f"  Status: {'✓ COMPLETED' if vet_visit.is_completed else '⏳ PENDING'}")
+    if next_vet:
+        print(f"  Next task: Generated")
+    else:
+        print(f"  ✨ No next task generated (one-time task)")
+
+    # DEMO 4: Identify and filter recurring tasks
+    print("\n\n📋 DEMO 4: Identify Recurring vs One-Time Tasks")
+    print("-" * 80)
+    
+    recurring = scheduler.get_recurring_tasks(tasks)
+    print(f"\nRecurring Tasks ({len(recurring)}):")
+    for task in recurring:
+        print(f"  {task.title:<25} | {task.recurrence_pattern.upper():<7} | {task.pet_id}")
+    
+    one_time = [t for t in tasks if t.recurrence_pattern == "once"]
+    print(f"\nOne-Time Tasks ({len(one_time)}):")
+    for task in one_time:
+        print(f"  {task.title:<25} | ONE-TIME | {task.pet_id}")
+
+    # DEMO 5: Expand recurring tasks over a month
+    print("\n\n📋 DEMO 5: Expand Recurring Tasks Over 30 Days (using timedelta)")
+    print("-" * 80)
+    
+    recurring_tasks = scheduler.get_recurring_tasks(tasks)
+    expanded = scheduler.expand_recurring_tasks(recurring_tasks, days=30)
+    
+    print(f"\nExpanded {len(recurring_tasks)} recurring task templates into {len(expanded)} task instances over 30 days\n")
+    
+    # Count by type
+    daily_count = len([t for t in expanded if t.recurrence_pattern == "daily"])
+    weekly_count = len([t for t in expanded if t.recurrence_pattern == "weekly"])
+    
+    print(f"Daily task instances:  {daily_count} (30 days × {len([t for t in recurring if t.recurrence_pattern == 'daily'])} daily templates = ~90 tasks)")
+    print(f"Weekly task instances: {weekly_count} (30 days ÷ 7 = ~{len([t for t in recurring if t.recurrence_pattern == 'weekly']) * 5} occurrences total)")
+    
+    # Show sample expanded schedule
+    print(f"\nSample expanded tasks (first 10):")
+    for task in expanded[:10]:
+        print(f"  {task.original_due_date} | {task.title:<25} | {task.pet_id}")
+
+    # DEMO 6: Build a 3-day sample schedule with recurring tasks
+    print("\n\n" + "="*80)
+    print("3-DAY RECURRING TASK SCHEDULE (Generated with timedelta)")
+    print("="*80)
+    
+    for day_offset in range(3):
+        current_date = date.today() + timedelta(days=day_offset)
         
-        print(f"  {start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')} | {task.title}")
-        print(f"    Pet: {task.pet_id} | Duration: {task.duration_minutes}min | Priority: {task.priority}")
-        print()
+        print(f"\n📅 {current_date.strftime('%A, %B %d, %Y')}")
+        print("-" * 80)
+        
+        # Get daily and weekly tasks for this date
+        day_tasks = []
+        for task in recurring_tasks:
+            if task.recurrence_pattern == "daily":
+                day_tasks.append(task)
+            elif task.recurrence_pattern == "weekly" and day_offset % 7 == 0:
+                day_tasks.append(task)
+        
+        # Sort by time
+        day_tasks = scheduler.sort_by_time(day_tasks)
+        
+        if day_tasks:
+            total_time = sum(t.duration_minutes for t in day_tasks)
+            print(f"  Total duration: {total_time} minutes\n")
+            for task in day_tasks:
+                print(f"  {task.due_time.strftime('%I:%M %p')} | {task.title:<25} | {task.duration_minutes:3}min | 🐾 {task.pet_id}")
+        else:
+            print("  No recurring tasks scheduled for this day")
+
+    # DEMO 7: Show how timedelta works
+    print("\n\n" + "="*80)
+    print("HOW TIMEDELTA WORKS")
+    print("="*80)
     
-    print(f"Total time allocated: {plan.total_minutes_used} minutes")
-    print(f"Daily time available: {owner.daily_time_available} minutes")
-    print(f"Remaining time: {owner.daily_time_available - plan.total_minutes_used} minutes")
-    print("="*60)
+    today = date.today()
+    print(f"\nToday: {today}")
+    print(f"\nUsing timedelta() from datetime module:\n")
+    print(f"  today + timedelta(days=1)   = {today + timedelta(days=1)}   (next day)")
+    print(f"  today + timedelta(days=7)   = {today + timedelta(days=7)}   (next week)")
+    print(f"  today + timedelta(days=30)  = {today + timedelta(days=30)}  (next month approx)")
+    print(f"  today + timedelta(weeks=1)  = {today + timedelta(weeks=1)}  (same as days=7)")
+    print(f"  today + timedelta(hours=24) = {today + timedelta(hours=24)}  (same as days=1)")
+    
+    print("\nThis is how recurring tasks calculate their next due date:")
+    print("  • Daily tasks:   completed_date + timedelta(days=1)")
+    print("  • Weekly tasks:  completed_date + timedelta(days=7)")
+    print("  • Monthly tasks: completed_date + timedelta(days=30)")
+
+    # DEMO 8: Conflict Detection
+    print("\n\n" + "="*80)
+    print("CONFLICT DETECTION - Lightweight Warning System")
+    print("="*80)
+    
+    # Create two tasks at the same time (conflict)
+    evening_play = CareTask(
+        task_id="T007",
+        pet_id="P001",
+        title="Evening Play Session",
+        category="enrichment",
+        duration_minutes=20,
+        priority=2,
+        due_time=time(18, 0),  # SAME TIME as cat feeding!
+        is_completed=False,
+        recurrence_pattern="once"
+    )
+    
+    print("\nCreated 2 tasks scheduled at the same time:\n")
+    print(f"  Task 1: {feeding_cat.title} at {feeding_cat.due_time.strftime('%I:%M %p')} (Pet: {feeding_cat.pet_id})")
+    print(f"  Task 2: {evening_play.title} at {evening_play.due_time.strftime('%I:%M %p')} (Pet: {evening_play.pet_id})\n")
+    
+    # Check for conflicts
+    conflicting_tasks = tasks + [evening_play]  # Add the new conflict task
+    conflicts = scheduler.detect_conflicts(conflicting_tasks)
+    
+    if conflicts:
+        print(f"[!] Found {len(conflicts)} conflict(s):\n")
+        for task1, task2, warning in conflicts:
+            print(f"  {warning}")
+    else:
+        print("[OK] No conflicts detected")
 
 
 if __name__ == "__main__":

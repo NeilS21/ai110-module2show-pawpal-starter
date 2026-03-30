@@ -36,8 +36,19 @@ the score_task added the parameters current_time to clacute due times and help p
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+The `detect_conflicts()` method uses **exact time matching** rather than duration-overlap detection. 
+
+**Tradeoff Definition:**
+- **Current approach:** Only flags conflicts when two tasks have the exact same `due_time` (e.g., both at 2:00 PM)
+- **Alternative approach:** Would detect overlapping durations (e.g., task 1 runs 2:00-2:30 PM, task 2 runs 2:15-2:45 PM)
+
+**Why this tradeoff is reasonable:**
+1. **Lightweight & fast:** O(n²) exact matching is simpler than calculating duration overlaps
+2. **MVP scope:** For a pet care scheduler, same-time conflicts are the most critical to catch
+3. **User clarity:** Exact time matching is easier for users to understand and debug
+4. **Scalability:** Current design handles typical schedules (5-20 daily tasks) efficiently without complex time arithmetic
+
+**Limitation acknowledged:** Tasks with different start times but overlapping durations will not be flagged as conflicts (e.g., 1:56 PM 30-min task overlapping with 2:10 PM 30-min task). This was intentional to keep the MVP simple and user-focused.
 
 ---
 
