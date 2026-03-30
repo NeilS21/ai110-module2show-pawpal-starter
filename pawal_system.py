@@ -51,6 +51,7 @@ class Pet:
 class CareTask:
     """Represents a single care task for a pet."""
     task_id: str
+    pet_id: str
     title: str
     category: str
     duration_minutes: int
@@ -60,7 +61,7 @@ class CareTask:
 
     def mark_complete(self) -> None:
         """Mark this task as complete."""
-        pass
+        self.is_completed = True
 
     def update_task(self) -> None:
         """Update task details."""
@@ -79,12 +80,12 @@ class Scheduler:
         self.scoring_weights = scoring_weights
         self.strategy = strategy
 
-    def build_plan(self, owner: Owner, pet: Pet, tasks: List[CareTask]) -> "DailyPlan":
+    def build_plan(self, owner: Owner, pet: Pet, tasks: List[CareTask], current_time: time) -> "DailyPlan":
         """Build a daily plan for the given owner, pet, and tasks."""
         pass
 
-    def score_task(self, task: CareTask) -> float:
-        """Calculate a priority score for a task."""
+    def score_task(self, task: CareTask, current_time: time, remaining_minutes: int) -> float:
+        """Calculate a priority score for a task based on urgency, priority, and time constraints."""
         pass
 
     def resolve_conflicts(self) -> None:
@@ -97,12 +98,12 @@ class DailyPlan:
     """Represents a daily schedule of tasks."""
     date: date
     total_minutes_used: int = 0
-    scheduled_items: List[CareTask] = field(default_factory=list)
+    scheduled_items: dict[str, time] = field(default_factory=dict)  # task_id -> start_time
     unscheduled_tasks: List[CareTask] = field(default_factory=list)
 
     def add_item(self, task: CareTask, start_time: time) -> None:
         """Add a task to the schedule at a specific time."""
-        pass
+        self.scheduled_items[task.task_id] = start_time
 
     def remove_item(self, task_id: str) -> None:
         """Remove a task from the schedule."""

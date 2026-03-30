@@ -21,6 +21,10 @@ DailyPlan class includes date, scheduled_items, total_minutes_used, and unschedu
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
 
+Added pet_id o caretask in order to link takses to a specifc pet.
+In scheduleer the build_plan funtion added paraeter for current_time to keep record of timing,
+the score_task added the parameters current_time to clacute due times and help prioritze urgent tasks
+ and remaing_minutes to calculate time left for a task.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
