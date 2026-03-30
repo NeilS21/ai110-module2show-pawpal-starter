@@ -22,6 +22,10 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Demo
+
+<a href="walkthrough.gif" target="_blank"><img src='walkthrough.gif' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+
 ## Getting started
 
 ### Setup

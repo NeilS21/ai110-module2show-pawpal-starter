@@ -1,0 +1,50 @@
+class Pet {
+    +String pet_id
+    +String name
+    +String species
+    +int age
+    +String energy_level
+    +String medical_notes
+    +update_profile()
+    +get_care_needs()
+}
+
+class CareTask {
+    +String task_id
+    +String title
+    +String category
+    +int duration_minutes
+    +int priority
+    +String due_time
+    +bool is_completed
+    +mark_complete()
+    +update_task()
+    +get_urgency_score(current_time)
+}
+
+class Scheduler {
+    +String constraints
+    +String scoring_weights
+    +String strategy
+    +build_plan(owner, pet, tasks)
+    +score_task(task)
+    +resolve_conflicts()
+}
+
+class DailyPlan {
+    +String date
+    +int total_minutes_used
+    +List scheduled_items
+    +List unscheduled_tasks
+    +add_item(task, start_time)
+    +remove_item(task_id)
+    +explain_plan()
+}
+
+Owner "1" --> "0..*" Pet : has
+Pet "1" --> "0..*" CareTask : needs
+Scheduler ..> Owner : uses preferences
+Scheduler ..> Pet : uses care needs
+Scheduler ..> CareTask : prioritizes
+Scheduler --> DailyPlan : generates
+DailyPlan "1" o-- "0..*" CareTask : schedules
